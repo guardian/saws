@@ -14,20 +14,18 @@ object Main extends StrictLogging {
 
   def main(args: Array[String]): Unit = {
     val parsedArgs = argParser.parse(args, Arguments.empty())
-    val result = for {
+    (for {
       _ <- checkArgs(parsedArgs)
       instanceId <- getInstanceId(parsedArgs)
       signaller <- getSignaller(parsedArgs, instanceId)
       signal <- check(parsedArgs)
       result <- signaller.signal(signal)
-    } yield result
-    result match {
-      case Right(message) =>
-        logger.info(message)
-      case Left(message) =>
-        logger.error(message)
-        System.exit(1)
-    }
+    } yield result) fold (fail, logger.info)
+  }
+
+  def fail(message: String) = {
+    logger.error(message)
+    System.exit(1)
   }
 
   private def getInstanceId(parsedArgs: Option[Arguments]): Either[String, String] = {
