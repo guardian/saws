@@ -31,6 +31,7 @@ from an S3 bucket - we intend to publish this as a deb and/or and Amigo role.
    aws s3 cp s3://security-dist/saws /root/saws
    /bin/chmod +x /root/saws
    # Invoke - check for a good service at http://localhost:9000/healthcheck
+   # Sleep five seconds, then check.  Repeat up to ten times.
    /root/saws http200 -p 9000 -t 10 -s 5 -P healthcheck
 ```
 
