@@ -24,8 +24,8 @@ object ArgumentParser {
           .action((host, args) =>
             args.copy(checkParameters = Some(args.checkParameters.get.asInstanceOf[Http200Arguments].copy(host = Host(host)))))
           .text("The host to check"),
-        opt[String]('S', "secure").optional()
-          .action((protocol, args) =>
+        opt[Unit]('S', "secure").optional()
+          .action((_, args) =>
             args.copy(checkParameters = Some(args.checkParameters.get.asInstanceOf[Http200Arguments].copy(protocol = Protocol("https")).copy(port = Port(443)))))
           .text("Use secure https protocol (sets port to 443)"),
         opt[String]('P', "path").optional()
