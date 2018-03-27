@@ -18,3 +18,5 @@ Signal success when a http 200 response code is received from a service.
 
   * cloudformation:DescribeStackResources
   * cloudformation:SignalResource
+  * autoscaling:DescribeAutoScalingInstances
+  * autoscaling:DescribeAutoScalingGroups
