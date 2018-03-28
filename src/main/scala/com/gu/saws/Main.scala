@@ -20,13 +20,15 @@ object Main extends StrictLogging {
       signaller <- getSignaller(parsedArgs, instanceId)
       signal <- check(parsedArgs)
       result <- signaller.signal(signal)
-    } yield result) fold (fail, logger.info)
+    } yield result) fold (fail, success)
   }
 
-  def fail(message: String) = {
+  private def fail(message: String): Unit = {
     logger.error(message)
     System.exit(1)
   }
+
+  private def success(message: String): Unit = logger.info(message)
 
   private def getInstanceId(parsedArgs: Option[Arguments]): Either[String, String] = {
     parsedArgs match {
@@ -58,15 +60,15 @@ object Main extends StrictLogging {
   private def getSignaller(parsedArgs: Option[Arguments], instanceId: String): Either[String, Signal] = try {
     parsedArgs match {
       case Some(Arguments(Some(credentials), Some(region), _, _, _, _, _, _, _)) =>
-        Right(Signal(
+        Signal.getSignaller(
           getCloudformationClient(region, credentials),
           getAutoscalingClient(region, credentials),
-          instanceId))
+          instanceId)
       case Some(Arguments(None, None, _, _, _, _, _, _, _)) =>
-        Right(Signal(
+        Signal.getSignaller(
           AmazonCloudFormationClientBuilder.defaultClient(),
           AmazonAutoScalingClientBuilder.defaultClient(),
-          instanceId))
+          instanceId)
       case _ => Left("Did not receive valid credentials and region combination (must be both or neither)")
     }
   } catch {

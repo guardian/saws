@@ -7,34 +7,18 @@ import com.amazonaws.services.cloudformation.AmazonCloudFormation
 import collection.JavaConverters._
 import com.typesafe.scalalogging.StrictLogging
 
-case class Signal(awsClient: AmazonCloudFormation, asgClient: AmazonAutoScaling, instanceId: String) extends StrictLogging {
+object Signal {
 
-  def signal(success: Boolean): Either[String, String] = {
+  def getSignaller(awsClient: AmazonCloudFormation, asgClient: AmazonAutoScaling, instanceId: String): Either[String, Signal] =
     try {
       for {
-        stackResource <- findInstanceAutoscalingGroup
-        result <- signalToASG(stackResource, success)
-      } yield result
+        stackResource <- findInstanceAutoscalingGroup(awsClient, asgClient, instanceId)
+      } yield Signal(awsClient, stackResource, instanceId)
     } catch {
       case e: RuntimeException => Left(s"Failed: ${e.getMessage}")
     }
-  }
 
-  private def signalToASG(autoScalingGroup: StackResource, success: Boolean): Either[String, String] = {
-    val signal = if (success) ResourceSignalStatus.SUCCESS else ResourceSignalStatus.FAILURE
-    val stackName = autoScalingGroup.getStackName
-    val asgLogicalResourceId = autoScalingGroup.getLogicalResourceId
-    awsClient.signalResource(
-      new SignalResourceRequest()
-        .withStackName(stackName)
-        .withLogicalResourceId(asgLogicalResourceId)
-        .withUniqueId(instanceId)
-        .withStatus(signal)
-    )
-    Right(s"$signal signal sent to $stackName/$asgLogicalResourceId")
-  }
-
-  private def findInstanceAutoscalingGroup = {
+  private def findInstanceAutoscalingGroup(awsClient: AmazonCloudFormation, asgClient: AmazonAutoScaling,instanceId: String) = {
     awsClient.describeStackResources(
       new DescribeStackResourcesRequest().withPhysicalResourceId(instanceId)
     )
@@ -56,4 +40,33 @@ case class Signal(awsClient: AmazonCloudFormation, asgClient: AmazonAutoScaling,
       case None => Left(s"Could not find stack resource containing $instanceId")
     }
   }
+
+}
+
+case class Signal(awsClient: AmazonCloudFormation, stackResource: StackResource, instanceId: String) extends StrictLogging {
+
+  def signal(success: Boolean): Either[String, String] = {
+    try {
+      for {
+        result <- signalToASG(stackResource, success)
+      } yield result
+    } catch {
+      case e: RuntimeException => Left(s"Failed: ${e.getMessage}")
+    }
+  }
+
+  private def signalToASG(autoScalingGroup: StackResource, success: Boolean): Either[String, String] = {
+    val signal = if (success) ResourceSignalStatus.SUCCESS else ResourceSignalStatus.FAILURE
+    val stackName = autoScalingGroup.getStackName
+    val asgLogicalResourceId = autoScalingGroup.getLogicalResourceId
+    awsClient.signalResource(
+      new SignalResourceRequest()
+        .withStackName(stackName)
+        .withLogicalResourceId(asgLogicalResourceId)
+        .withUniqueId(instanceId)
+        .withStatus(signal)
+    )
+    Right(s"$signal signal sent to $stackName/$asgLogicalResourceId")
+  }
+
 }
